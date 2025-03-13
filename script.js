@@ -1,49 +1,66 @@
-// ひらがな↔カタカナ変換関数
-function toKatakana(str) {
-    return str.replace(/[\u3041-\u3096]/g, function(match) {
-        return String.fromCharCode(match.charCodeAt(0) + 0x60);
-    });
-}
+let scarfActive = false;
+let windActive = false;
+let enemyWindActive = false;
 
-// ポケモンのデータ（カタカナで統一）
-const pokemonData = [
-    { name: "サンダース", baseSpeed: 130 },
-    { name: "マニューラ", baseSpeed: 125 },
-    { name: "ドラパルト", baseSpeed: 142 },
-    { name: "ガブリアス", baseSpeed: 102 },
-    { name: "ゲッコウガ", baseSpeed: 122 },
-    { name: "ルカリオ", baseSpeed: 90 },
-    { name: "カイリュー", baseSpeed: 80 },
-    { name: "ポリゴン2", baseSpeed: 60 },
-    { name: "ナマコブシ", baseSpeed: 5 }
-];
+let pokemonData = {
+    "ガブリアス": 102,
+    "サンダー": 100,
+    "カイリュー": 80,
+    "ゲンガー": 110,
+    "ルカリオ": 90
+}; // 追加可能
 
-// ページ読み込み時にポケモンリストをセット
-window.onload = function() {
-    let select = document.getElementById("pokemon");
-    pokemonData.forEach(pokemon => {
-        let option = document.createElement("option");
-        option.value = pokemon.baseSpeed;
-        option.text = pokemon.name;
-        select.appendChild(option);
-    });
+const hiraMap = {
+    "が": "ガ", "ぎ": "ギ", "ぐ": "グ", "げ": "ゲ", "ご": "ゴ",
+    "ざ": "ザ", "じ": "ジ", "ず": "ズ", "ぜ": "ゼ", "ぞ": "ゾ",
+    "だ": "ダ", "ぢ": "ヂ", "づ": "ヅ", "で": "デ", "ど": "ド",
+    "ば": "バ", "び": "ビ", "ぶ": "ブ", "べ": "ベ", "ぼ": "ボ",
+    "ぱ": "パ", "ぴ": "ピ", "ぷ": "プ", "ぺ": "ペ", "ぽ": "ポ"
 };
 
-// リアルタイム検索（ひらがな対応 & 部分一致強化）
+function toKatakana(str) {
+    return str.replace(/[\u3041-\u3096]/g, match => hiraMap[match] || String.fromCharCode(match.charCodeAt(0) + 96));
+}
+
+function toggleScarf() {
+    scarfActive = !scarfActive;
+    updateButtonStyles();
+    calculateSpeed();
+}
+
+function toggleWind() {
+    windActive = !windActive;
+    updateButtonStyles();
+    calculateSpeed();
+}
+
+function toggleEnemyWind() {
+    enemyWindActive = !enemyWindActive;
+    updateButtonStyles();
+    calculateSpeed();
+}
+
+function updateButtonStyles() {
+    document.getElementById("scarfButton").style.backgroundColor = scarfActive ? "#4CAF50" : "#ccc";
+    document.getElementById("windButton").style.backgroundColor = windActive ? "#4CAF50" : "#ccc";
+    document.getElementById("enemyWindButton").style.backgroundColor = enemyWindActive ? "#4CAF50" : "#ccc";
+}
+
 function showSuggestions() {
-    let input = document.getElementById("pokemonInput").value.trim();
+    let input = document.getElementById("pokemonInput").value;
     let suggestionBox = document.getElementById("suggestionBox");
     suggestionBox.innerHTML = "";
-    if (input === "") return;
-    
-    let inputKatakana = toKatakana(input);
-    let matches = pokemonData.filter(pokemon => pokemon.name.includes(input) || pokemon.name.includes(inputKatakana));
-    
-    matches.forEach(pokemon => {
+
+    if (input.length === 0) return;
+
+    let katakanaInput = toKatakana(input);
+    let filtered = Object.keys(pokemonData).filter(name => name.includes(katakanaInput));
+
+    filtered.slice(0, 6).forEach(name => {
         let div = document.createElement("div");
-        div.innerText = pokemon.name;
-        div.onclick = function() {
-            document.getElementById("pokemonInput").value = pokemon.name;
+        div.textContent = name;
+        div.onclick = function () {
+            document.getElementById("pokemonInput").value = name;
             suggestionBox.innerHTML = "";
             calculateSpeed();
         };
@@ -51,34 +68,37 @@ function showSuggestions() {
     });
 }
 
-// 素早さ計算関数（入力時に自動計算）
-document.getElementById("pokemonInput").addEventListener("input", calculateSpeed);
-
 function calculateSpeed() {
-    let inputName = document.getElementById("pokemonInput").value.trim();
-    let baseSpeed = null;
+    let userSpeed = parseFloat(document.getElementById("userSpeed").value);
+    let pokemonName = document.getElementById("pokemonInput").value;
+    let katakanaName = toKatakana(pokemonName);
 
-    if (inputName) {
-        let inputKatakana = toKatakana(inputName);
-        let foundPokemon = pokemonData.find(pokemon => pokemon.name === inputName || pokemon.name === inputKatakana);
-        if (foundPokemon) {
-            baseSpeed = foundPokemon.baseSpeed;
-        } else {
-            document.getElementById("result").innerHTML = "<p>そのポケモンはデータにありません！</p>";
-            return;
-        }
+    if (!pokemonData[katakanaName]) return;
+
+    let baseSpeed = pokemonData[katakanaName];
+    if (enemyWindActive) baseSpeed *= 2; // 相手が追い風・すいすいの場合
+
+    let results = {
+        "最速スカーフ": Math.floor(baseSpeed * 1.5 * 1.1),
+        "準速スカーフ": Math.floor(baseSpeed * 1.5),
+        "最速": Math.floor(baseSpeed * 1.1),
+        "準速": Math.floor(baseSpeed),
+        "無振り": Math.floor(baseSpeed * 0.9),
+        "最遅": Math.floor(baseSpeed * 0.5)
+    };
+
+    let adjustedSpeed = userSpeed;
+    if (scarfActive) adjustedSpeed *= 1.5;
+    if (windActive) adjustedSpeed *= 2;
+
+    let tableHTML = "<div class='result-table'>";
+    for (let key in results) {
+        let color = adjustedSpeed
+            ? (adjustedSpeed > results[key] ? "rgba(255, 0, 0, 0.3)" : adjustedSpeed < results[key] ? "rgba(0, 0, 255, 0.3)" : "rgba(255, 255, 0, 0.3)")
+            : "transparent"; // 自分の素早さ未入力なら色なし
+        tableHTML += `<div class='result-row' style="background:${color};"><span>${key}</span><span>${results[key]}</span></div>`;
     }
+    tableHTML += "</div>";
 
-    if (baseSpeed === null) return;
-
-    let maxSpeed = Math.floor(((2 * baseSpeed + 31 + (252 / 4)) * 50) / 100 + 5) * 1.1;
-    let neutralSpeed = Math.floor(((2 * baseSpeed + 31 + (252 / 4)) * 50) / 100 + 5);
-    let minSpeed = Math.floor(((2 * baseSpeed + 0 + (0 / 4)) * 50) / 100 + 5) * 0.9;
-
-    document.getElementById("result").innerHTML = `
-        <p><strong>最速 (S252+):</strong> ${Math.floor(maxSpeed)}</p>
-        <p><strong>準速 (S252):</strong> ${Math.floor(neutralSpeed)}</p>
-        <p><strong>無振り (S0):</strong> ${Math.floor((2 * baseSpeed * 50) / 100 + 5)}</p>
-        <p><strong>最遅 (S0-):</strong> ${Math.floor(minSpeed)}</p>
-    `;
+    document.getElementById("result").innerHTML = tableHTML;
 }
