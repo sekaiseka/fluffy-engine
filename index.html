@@ -1,115 +1,148 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ポケモン素早さ計算</title>
-    <style>
-        body {
-            text-align: center;
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-        }
-        .input-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            position: relative;
-        }
-        input {
-            padding: 8px;
-            font-size: 16px;
-            margin: 5px;
-            width: 200px;
-            text-align: center;
-        }
-        button {
-            padding: 8px 12px;
-            font-size: 14px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            background-color: #ccc;
-            color: white;
-        }
-        .suggestion-box {
-            position: absolute;
-            background: white;
-            border: 1px solid #ccc;
-            max-height: 240px;
-            overflow-y: auto;
-            width: 200px;
-            text-align: left;
-            top: 40px;
-            z-index: 1000;
-        }
-        .suggestion-box div {
-            padding: 8px;
-            cursor: pointer;
-        }
-        .suggestion-box div:hover {
-            background: #f0f0f0;
-        }
-        .input-group {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin-bottom: 15px;
-        }
-        .result-table {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            margin-top: 10px;
-        }
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            width: 200px;
-            padding: 5px;
-            border-radius: 5px;
-            font-weight: bold;
-            border: 1px solid #000;
-        }
-        .spacer {
-            height: 160px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ポケモン素早さ計算</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: auto;
+      padding: 10px;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      width: 100%;
+      justify-content: center;
+      position: relative;
+      margin-bottom: 10px;
+    }
+    input {
+      padding: 8px;
+      font-size: 14px;
+      width: 120px;
+      text-align: center;
+    }
+    button {
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #ccc;
+      color: white;
+      flex-shrink: 0;
+    }
+    .active {
+      background-color: #4CAF50 !important;
+    }
+    .rank-controls {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .rank-controls button {
+      font-size: 16px;
+      padding: 10px 15px;
+    }
+    .suggestion-box {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 100px;
+      overflow-y: auto;
+      width: 120px;
+      top: 35px;
+      z-index: 1000;
+    }
+    .suggestion-box div {
+      padding: 5px;
+      cursor: pointer;
+    }
+    .suggestion-box div:hover {
+      background: #f0f0f0;
+    }
+    .spacer {
+      height: 120px; /* 相手と自分の入力欄の間の隙間 */
+    }
+    .result-table {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      margin-top: 10px;
+      width: 80%;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      padding: 5px;
+      border-radius: 5px;
+      font-weight: bold;
+      border: 1px solid #000;
+      text-align: center;
+    }
+    .self-result {
+      margin-top: 10px;
+      padding: 10px;
+      border: 2px solid #000;
+      border-radius: 5px;
+      background-color: #ffcc00;
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>ポケモン素早さ計算</h1>
-
-        <!-- 相手のポケモン名 -->
-        <label for="pokemonInput">相手のポケモン名を入力:</label>
-        <div class="input-container">
-            <div class="input-group">
-                <button id="enemyWindButton" onclick="toggleEnemyWind()">相手の追い風・すいすい</button>
-                <input type="text" id="pokemonInput" oninput="showSuggestions(); calculateSpeed();">
-            </div>
-            <div id="suggestionBox" class="suggestion-box"></div>
-        </div>
-
-        <div class="spacer"></div>
-
-        <!-- 実数値入力欄とボタン -->
-        <label for="userSpeed">自分の素早さ実数値:</label>
-        <div class="input-group">
-            <button id="windButton" onclick="toggleWind()">追い風・すいすい</button>
-            <button id="scarfButton" onclick="toggleScarf()">スカーフ</button>
-            <input type="number" id="userSpeed" placeholder="例: 100" oninput="calculateSpeed()">
-        </div>
-
-        <div id="result"></div>
+  <div class="container">
+    <h2>ポケモン素早さ計算</h2>
+    
+    <!-- 相手側入力グループ -->
+    <div class="input-group">
+      <button id="enemyWeatherButton" onclick="toggleEnemyWeather()">天候系</button>
+      <input type="text" id="enemyPokemonInput" placeholder="相手ポケモン" oninput="showSuggestions(); calculateSpeed();">
+      <div class="suggestion-box" id="enemySuggestionBox"></div>
+      <button id="enemyParalyzeButton" onclick="toggleEnemyParalyze()">まひ</button>
+      <div class="rank-controls">
+        <button onclick="adjustRank('enemy', -1)">-</button>
+        <span id="enemyRankDisplay">0</span>
+        <button onclick="adjustRank('enemy', 1)">+</button>
+      </div>
     </div>
-
-    <script src="script.js"></script>
+    
+    <div class="spacer"></div>
+    
+    <!-- 自分側入力グループ -->  
+    <div class="input-group">
+      <button id="selfWeatherButton" onclick="toggleSelfWeather()">天候系</button>
+      <button id="scarfButton" onclick="toggleScarf()">スカーフ</button>
+      <input type="number" id="selfSpeedInput" placeholder="自分の素早さ" oninput="calculateSpeed()">
+      <!-- 自分側まひボタンを、入力欄の右、ランク補正ボタンの左に配置 -->
+      <button id="selfParalyzeButton" onclick="toggleSelfParalyze()">まひ</button>
+      <div class="rank-controls">
+        <button onclick="adjustRank('self', -1)">-</button>
+        <span id="selfRankDisplay">0</span>
+        <button onclick="adjustRank('self', 1)">+</button>
+      </div>
+    </div>
+    
+    <!-- 結果表示エリア -->  
+    <div id="result" class="result-table"></div>
+  </div>
+  
+  <script src="script.js"></script>
 </body>
 </html>
+
+
